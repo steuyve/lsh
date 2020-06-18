@@ -7,8 +7,10 @@
 #define LSH_RL_BUFSIZE 1024
 #define LSH_TOK_BUFSIZE 64
 #define LSH_TOK_DELIM " \t\r\n\a"
+#define LSH_CURRDIR_BUFSIZE 16
 
 void lsh_loop(void);
+void lsh_shellprompt(void);
 char *lsh_read_line(void);
 char **lsh_split_line(char *line);
 int lsh_launch(char **args);
@@ -32,7 +34,7 @@ int (*builtin_func[]) (char **) = {
     &lsh_exit
 };
 
-int main() {
+int main(void) {
     // Initialize - load and execute configuration files, if any.
 
     // Run command loop.
@@ -48,7 +50,7 @@ void lsh_loop(void) {
     int status = 1;
 
     do {
-        printf("> ");
+        lsh_shellprompt();
         line = lsh_read_line();
         args = lsh_split_line(line);
         status = lsh_execute(args);
@@ -178,6 +180,22 @@ int lsh_execute(char **args) {
 
     // Otherwise, launch.
     return lsh_launch(args);
+}
+
+void lsh_shellprompt(void) {
+    size_t size = sizeof(char) * LSH_CURRDIR_BUFSIZE;
+    char *curr_dir = malloc(size);
+    while (getcwd(curr_dir, size) == NULL) {
+        size += sizeof(char) * LSH_CURRDIR_BUFSIZE;
+        curr_dir = realloc(curr_dir, size);
+        if (!curr_dir) {
+            fprintf(stderr, "lsh: allocation error\n");
+            exit(EXIT_FAILURE);
+        }
+    }
+    char *user = getenv("USER");
+    printf("%s@%s> ", user, curr_dir);
+    free(curr_dir);
 }
 
 /* Builtin Shell Commands */
