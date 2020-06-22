@@ -1,3 +1,7 @@
+/*
+ * lsh.c - a simple shell using fork() and exec().
+ */
+
 #include <sys/wait.h>
 #include <unistd.h>
 #include <stdlib.h>
@@ -35,12 +39,12 @@ int (*builtin_func[]) (char **) = {
 };
 
 int main(void) {
-    // Initialize - load and execute configuration files, if any.
+    /* Initialize - load and execute configuration files, if any. */
 
-    // Run command loop.
+    /* Run command loop. */
     lsh_loop();
 
-    // Perform any shutdown/cleanup.
+    /* Perform any shutdown/cleanup. */
     return EXIT_SUCCESS;
 }
 
@@ -66,17 +70,17 @@ char *lsh_read_line(void) {
     char *buffer = malloc(sizeof(char) * bufsize);
     int c;
 
-    // Check for allocation errors, malloc (and realloc below) returns NULL on error.
+    /* Check for allocation errors, malloc (and realloc below) returns NULL on error. */
     if (!buffer) {
         fprintf(stderr, "lsh: allocation error\n");
         exit(EXIT_FAILURE);
     }
     
     while (1) {
-        // Read a character
+        /* Read a character */
         c = getchar();
 
-        // If we hit EOF or newline, replace it with a null character and return.
+        /* If we hit EOF or newline, replace it with a null character and return. */
         if (c == EOF || c == '\n') {
             buffer[position] = '\0';
             return buffer;
@@ -85,7 +89,7 @@ char *lsh_read_line(void) {
         }
         position++;
 
-        // If we have exceeded the buffer, reallocate and continue.
+        /* If we have exceeded the buffer, reallocate and continue. */
         if (position >= bufsize) {
             bufsize += LSH_RL_BUFSIZE;
             buffer = realloc(buffer, bufsize);
@@ -107,13 +111,13 @@ char **lsh_split_line(char *line) {
         exit(EXIT_FAILURE);
     }
 
-    // Get the first token.
+    /* Get the first token. */
     token = strtok(line, LSH_TOK_DELIM);
     while (token != NULL) {
         tokens[position] = token;
         position++;
 
-        // Reallocate if needed.
+        /* Reallocate if needed. */
         if (position >= bufsize) {
             bufsize += LSH_TOK_BUFSIZE;
             tokens = realloc(tokens, bufsize * sizeof(char*));
@@ -123,7 +127,7 @@ char **lsh_split_line(char *line) {
             }
         }
 
-        // Get the next token.
+        /* Get the next token. */
         token = strtok(NULL, LSH_TOK_DELIM);
     }
 
@@ -136,22 +140,22 @@ int lsh_launch(char **args) {
     pid_t pid, wpid;
     int status;
 
-    // Fork the current process.
+    /* Fork the current process. */
     pid = fork();
     if (pid == 0) {
-        // Child process
+        /* Child process */
         printf("Process PID: %ld\n", (long) getpid());
-        // If execvp returns at all, an error occurred.
+        /* If execvp returns at all, an error occurred. */
         if (execvp(args[0], args) == -1) {
             perror("lsh");
         }
-        // We exit so that the shell can keep running.
+        /* We exit so that the shell can keep running. */
         exit(EXIT_FAILURE);
     } else if (pid < 0) {
-        // Error forking
+        /* Error forking */
         perror("lsh");
     } else {
-        // Parent process
+        /* Parent process */
         do {
             wpid = waitpid(pid, &status, WUNTRACED);
             if (wpid == -1) {
@@ -167,24 +171,26 @@ int lsh_launch(char **args) {
 int lsh_execute(char **args) {
     int i;
     if (args[0] == NULL) {
-        // An empty command was entered.
+        /* An empty command was entered. */
         return 1;
     }
 
-    // If any of the commands was a builtin, execute it.
+    /* If any of the commands was a builtin, execute it. */
     for (i = 0; i < lsh_num_builtins(); i++) {
         if (strcmp(args[0], builtin_str[i]) == 0) {
             return (*builtin_func[i])(args);
         }
     }
 
-    // Otherwise, launch.
+    /* Otherwise, launch. */
     return lsh_launch(args);
 }
 
 void lsh_shellprompt(void) {
     size_t size = sizeof(char) * LSH_CURRDIR_BUFSIZE;
     char *curr_dir = malloc(size);
+    char *user = getenv("USER");
+
     while (getcwd(curr_dir, size) == NULL) {
         size += sizeof(char) * LSH_CURRDIR_BUFSIZE;
         curr_dir = realloc(curr_dir, size);
@@ -193,7 +199,6 @@ void lsh_shellprompt(void) {
             exit(EXIT_FAILURE);
         }
     }
-    char *user = getenv("USER");
     printf("%s@%s> ", user, curr_dir);
     free(curr_dir);
 }
