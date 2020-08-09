@@ -144,7 +144,7 @@ int lsh_launch(char **args) {
     pid = fork();
     if (pid == 0) {
         /* Child process */
-        printf("Process PID: %ld\n", (long) getpid());
+        /* printf("Process PID: %ld\n", (long) getpid()); */
         /* If execvp returns at all, an error occurred. */
         if (execvp(args[0], args) == -1) {
             perror("lsh");
